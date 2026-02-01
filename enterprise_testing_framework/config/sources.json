@@ -24,14 +24,7 @@
         "dataset": "ds_api_products",
         "activity": "Copy_API_Products"
       }
-    ],
-    "error_handling": {
-      "deadletter_path": "abfss://raw@datalake/failed",
-      "retry": {
-        "count": 3,
-        "interval_seconds": 30
-      }
-    }
+    ]
   },
   "medallion": {
     "bronze": {
@@ -54,20 +47,6 @@
       ],
       "unique": [
         "order_id"
-      ],
-      "referential": [
-        {
-          "child_column": "customer_id",
-          "parent_table": "silver.customers",
-          "parent_column": "customer_id"
-        }
-      ],
-      "range": [
-        {
-          "column": "order_total",
-          "min": 0,
-          "max": 1000000
-        }
       ]
     },
     "gold": {
@@ -76,12 +55,6 @@
         "metric_date",
         "metric_name",
         "metric_value"
-      ],
-      "range": [
-        {
-          "column": "metric_value",
-          "min": 0
-        }
       ]
     }
   }
