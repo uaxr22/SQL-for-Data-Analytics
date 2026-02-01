@@ -1,0 +1,11 @@
+flowchart LR
+  A[Source Systems] --> B[ADF Ingestion Pipeline]
+  B --> C[Bronze Delta Tables]
+  C --> D[Silver Delta Tables]
+  D --> E[Gold Data Products]
+  E --> F[BI and ML Consumers]
+
+  T1[ADF contract tests] -.-> B
+  T2[Bronze quality SQL] -.-> C
+  T3[Silver conformance tests] -.-> D
+  T4[Gold business rule tests] -.-> E

@@ -1,0 +1,88 @@
+{
+  "adf": {
+    "pipeline_name": "pl_ingest_multi_source",
+    "parameters": [
+      "run_id",
+      "ingest_date"
+    ],
+    "expected_sources": [
+      {
+        "source_id": "crm_sqlserver",
+        "source_type": "sqlserver",
+        "dataset": "ds_sqlserver_customers",
+        "activity": "Copy_SQLServer_Customers"
+      },
+      {
+        "source_id": "s3_transactions",
+        "source_type": "s3",
+        "dataset": "ds_s3_transactions",
+        "activity": "Copy_S3_Transactions"
+      },
+      {
+        "source_id": "api_products",
+        "source_type": "rest_api",
+        "dataset": "ds_api_products",
+        "activity": "Copy_API_Products"
+      }
+    ],
+    "error_handling": {
+      "deadletter_path": "abfss://raw@datalake/failed",
+      "retry": {
+        "count": 3,
+        "interval_seconds": 30
+      }
+    }
+  },
+  "medallion": {
+    "bronze": {
+      "table": "bronze.events",
+      "not_null": [
+        "record_id",
+        "source_system",
+        "ingest_ts"
+      ],
+      "unique": [
+        "record_id"
+      ]
+    },
+    "silver": {
+      "table": "silver.orders",
+      "not_null": [
+        "order_id",
+        "customer_id",
+        "order_date"
+      ],
+      "unique": [
+        "order_id"
+      ],
+      "referential": [
+        {
+          "child_column": "customer_id",
+          "parent_table": "silver.customers",
+          "parent_column": "customer_id"
+        }
+      ],
+      "range": [
+        {
+          "column": "order_total",
+          "min": 0,
+          "max": 1000000
+        }
+      ]
+    },
+    "gold": {
+      "table": "gold.daily_sales",
+      "not_null": [
+        "metric_date",
+        "metric_name",
+        "metric_value"
+      ],
+      "range": [
+        {
+          "column": "metric_value",
+          "min": 0
+        }
+      ]
+    }
+  }
+}
