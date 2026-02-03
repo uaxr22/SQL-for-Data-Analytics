@@ -1,0 +1,128 @@
+{
+  "name": "pl_ingest_multi_source",
+  "properties": {
+    "description": "Ingest from SQL Server, S3, and REST API to bronze.",
+    "parameters": {
+      "run_id": {
+        "type": "String"
+      },
+      "ingest_date": {
+        "type": "String"
+      }
+    },
+    "activities": [
+      {
+        "name": "Copy_SQLServer_Customers",
+        "type": "Copy",
+        "policy": {
+          "retry": 3,
+          "retryIntervalInSeconds": 30
+        },
+        "inputs": [
+          {
+            "referenceName": "ds_sqlserver_customers",
+            "type": "DatasetReference"
+          }
+        ],
+        "outputs": [
+          {
+            "referenceName": "ds_bronze_customers",
+            "type": "DatasetReference"
+          }
+        ]
+      },
+      {
+        "name": "Copy_S3_Transactions",
+        "type": "Copy",
+        "policy": {
+          "retry": 3,
+          "retryIntervalInSeconds": 30
+        },
+        "inputs": [
+          {
+            "referenceName": "ds_s3_transactions",
+            "type": "DatasetReference"
+          }
+        ],
+        "outputs": [
+          {
+            "referenceName": "ds_bronze_transactions",
+            "type": "DatasetReference"
+          }
+        ]
+      },
+      {
+        "name": "Copy_API_Products",
+        "type": "Copy",
+        "policy": {
+          "retry": 3,
+          "retryIntervalInSeconds": 30
+        },
+        "inputs": [
+          {
+            "referenceName": "ds_api_products",
+            "type": "DatasetReference"
+          }
+        ],
+        "outputs": [
+          {
+            "referenceName": "ds_bronze_products",
+            "type": "DatasetReference"
+          }
+        ]
+      },
+      {
+        "name": "Log_Failure",
+        "type": "SetVariable",
+        "dependsOn": [
+          {
+            "activity": "Copy_SQLServer_Customers",
+            "dependencyConditions": [
+              "Failed"
+            ]
+          },
+          {
+            "activity": "Copy_S3_Transactions",
+            "dependencyConditions": [
+              "Failed"
+            ]
+          },
+          {
+            "activity": "Copy_API_Products",
+            "dependencyConditions": [
+              "Failed"
+            ]
+          }
+        ],
+        "typeProperties": {
+          "variableName": "last_failed_activity",
+          "value": "@activity().Name"
+        }
+      },
+      {
+        "name": "Move_Deadletter",
+        "type": "Copy",
+        "dependsOn": [
+          {
+            "activity": "Log_Failure",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "inputs": [
+          {
+            "referenceName": "ds_bronze_failed",
+            "type": "DatasetReference"
+          }
+        ],
+        "outputs": [
+          {
+            "referenceName": "ds_deadletter",
+            "type": "DatasetReference"
+          }
+        ]
+      }
+    ]
+  }
+}
